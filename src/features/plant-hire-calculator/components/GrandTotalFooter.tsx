@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Info, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Info, ToggleLeft, ToggleRight, CalendarPlus } from 'lucide-react';
 import { formatCurrency } from '../utils/calculations';
 
 const VAT_RATE = 0.15;
@@ -12,6 +12,8 @@ interface GrandTotalFooterProps {
   currentMonth: Date;
   vatEnabled: boolean;
   onVatToggle: () => void;
+  onNewMonth: () => void;
+  nextMonthLabel: string;
 }
 
 export const GrandTotalFooter: React.FC<GrandTotalFooterProps> = ({
@@ -20,6 +22,8 @@ export const GrandTotalFooter: React.FC<GrandTotalFooterProps> = ({
   currentMonth,
   vatEnabled,
   onVatToggle,
+  onNewMonth,
+  nextMonthLabel,
 }) => {
   const vatAmount = vatEnabled ? total * VAT_RATE : 0;
   const totalIncVat = total + vatAmount;
@@ -79,6 +83,16 @@ export const GrandTotalFooter: React.FC<GrandTotalFooterProps> = ({
               {formatCurrency(vatEnabled ? totalIncVat : total)}
             </div>
             {vatEnabled && <div className="text-xs text-amber-400 mt-0.5">incl. VAT</div>}
+          </div>
+          <div className="flex flex-col gap-1.5 ml-2 shrink-0">
+            <button
+              onClick={onNewMonth}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-medium transition-colors"
+              title="Clear this month's idle days for all equipment, then advance to next month"
+            >
+              <CalendarPlus className="w-3.5 h-3.5" />
+              → {nextMonthLabel}
+            </button>
           </div>
         </div>
       </div>

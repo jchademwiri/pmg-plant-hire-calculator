@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Calculator, Trash2, ChevronDown, ChevronUp, AlertCircle } from 'lucide-react';
+import { Calculator, Trash2, ChevronDown, ChevronUp, AlertCircle, Copy } from 'lucide-react';
 import type { Equipment, Rates } from '../types';
 import { formatCurrency, calculatePeriods, getSAHolidays, calculateLineTotal } from '../utils/calculations';
 import { DayPicker } from './DayPicker';
@@ -13,6 +13,7 @@ interface EquipmentCardProps {
   isActive: boolean;
   onSelect: () => void;
   onRemove: () => void;
+  onDuplicate: () => void;
   onUpdateIdleDays: (days: Date[]) => void;
   onMonthChange: (date: Date) => void;
 }
@@ -23,6 +24,7 @@ export const EquipmentCard: React.FC<EquipmentCardProps> = ({
   isActive,
   onSelect,
   onRemove, 
+  onDuplicate,
   onUpdateIdleDays, 
   onMonthChange 
 }) => {
@@ -93,6 +95,16 @@ export const EquipmentCard: React.FC<EquipmentCardProps> = ({
            </div>
            <div className="h-8 w-px bg-slate-200 hidden sm:block"></div>
            <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onDuplicate();
+            }}
+            className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+            title="Duplicate equipment (same rates, no idle days)"
+          >
+            <Copy className="w-5 h-5" />
+          </button>
+          <button
             onClick={(e) => { e.stopPropagation(); onRemove(); }}
             className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
             title="Remove Item"

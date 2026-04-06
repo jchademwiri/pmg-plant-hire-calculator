@@ -39,6 +39,8 @@ const PlantHireCalculator: React.FC = () => {
     equipment,
     addEquipment,
     removeEquipment,
+    duplicateEquipment,
+    clearMonthIdleDays,
     updateIdleDays,
     updateRates,
   } = useEquipmentManager();
@@ -82,6 +84,19 @@ const PlantHireCalculator: React.FC = () => {
     setNewEquipmentName(preset.name);
     setNewDailyRate(preset.rate.toString());
   };
+
+  const handleNewMonth = () => {
+    clearMonthIdleDays(currentMonth);
+    const next = new Date(currentMonth);
+    next.setMonth(next.getMonth() + 1);
+    setCurrentMonth(next);
+  };
+
+  const nextMonthLabel = new Date(
+    currentMonth.getFullYear(),
+    currentMonth.getMonth() + 1,
+    1
+  ).toLocaleDateString('en-ZA', { month: 'short', year: 'numeric' });
 
   useEffect(() => {
     try {
@@ -222,6 +237,7 @@ const PlantHireCalculator: React.FC = () => {
                 isActive={item.id === activeRateEquipmentId}
                 onSelect={() => setActiveRateEquipmentId(item.id)}
                 onRemove={() => removeEquipment(item.id)}
+                onDuplicate={() => duplicateEquipment(item.id)}
                 onUpdateIdleDays={(days) => updateIdleDays(item.id, days)}
                 onMonthChange={setCurrentMonth}
               />
@@ -237,6 +253,8 @@ const PlantHireCalculator: React.FC = () => {
             currentMonth={currentMonth}
             vatEnabled={vatEnabled}
             onVatToggle={() => setVatEnabled((v) => !v)}
+            onNewMonth={handleNewMonth}
+            nextMonthLabel={nextMonthLabel}
           />
         )}
 
