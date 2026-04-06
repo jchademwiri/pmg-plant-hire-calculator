@@ -24,6 +24,22 @@ As such, the system should always be considered a **living tool**, evolving alon
 
 ---
 
+## 🌍 Open Source Purpose
+
+This repository is open source to support **contractors, estimators, and project teams** working on similar municipal tenders.
+
+The goal is simple:
+
+* Help users **get pricing right quickly**
+* Eliminate repetitive manual calculations
+* Reduce errors in **discount application, overtime rates, and billing logic**
+
+Instead of recalculating rates, discounts, and compliance rules manually for every invoice, this tool provides a **reliable, repeatable, and audit-friendly approach** based on real tender requirements.
+
+While the system is tailored to Tshwane tenders listed above, it can also serve as a **reference implementation** for similar plant hire contracts across South Africa.
+
+---
+
 ## 🚀 Key Features
 
 ### 💾 Persistent Session
