@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Plus, Trash2, TrendingUp } from 'lucide-react';
 import type { CatalogueItem } from '../../types';
-import { formatCurrency } from '../../utils/calculations';
 
 interface CatalogueTabProps {
   catalogue: CatalogueItem[];
@@ -58,6 +57,7 @@ export const CatalogueTab: React.FC<CatalogueTabProps> = ({
               value={item.name}
               onChange={(e) => onUpdate(item.id, { name: e.target.value })}
               aria-label="Equipment name"
+              title="Equipment name"
               className="flex-1 min-w-0 text-sm font-medium text-slate-800 bg-transparent border-none outline-none focus:bg-white focus:border focus:border-slate-200 focus:rounded px-1 py-0.5 transition-all"
             />
 
@@ -71,6 +71,7 @@ export const CatalogueTab: React.FC<CatalogueTabProps> = ({
                   if (!isNaN(r) && r > 0) onUpdate(item.id, { rate: r });
                 }}
                 aria-label="Daily rate"
+                title="Daily rate"
                 className="w-24 text-sm text-right text-slate-700 bg-transparent border-none outline-none focus:bg-white focus:border focus:border-slate-200 focus:rounded px-1 py-0.5 transition-all"
               />
             </div>

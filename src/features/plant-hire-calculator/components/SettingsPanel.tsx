@@ -66,6 +66,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
           <button
             type="button"
             onClick={onClose}
+            aria-label="Close settings"
             className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
           >
             <X className="w-4 h-4" />
