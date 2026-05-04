@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import type { Equipment, DayType, InvoiceGroupData } from '../types';
+import { createPortal } from 'react-dom';import type { Equipment, DayType, InvoiceGroupData } from '../types';
 import {
   calculatePeriods,
   getSAHolidays,
@@ -139,33 +139,106 @@ export const PrintView: React.FC<PrintViewProps> = ({
   const vatAmount = vatEnabled ? grandTotalExVat * VAT_RATE : 0;
   const totalIncVat = grandTotalExVat + vatAmount;
 
-  return (
+  const portalRoot = typeof document !== 'undefined' ? document.body : null;
+
+  const saveAsPdf = async () => {
+    const el = document.getElementById('phc-invoice-doc');
+    if (!el) return;
+
+    // Dynamically import to avoid SSR issues
+    const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
+      import('html2canvas-pro'),
+      import('jspdf'),
+    ]);
+
+    // Capture at 2× for retina sharpness
+    const canvas = await html2canvas(el, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: '#ffffff',
+    });
+
+    const imgData = canvas.toDataURL('image/png');
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const imgW = pageW;
+    const imgH = (canvas.height * pageW) / canvas.width;
+
+    let yOffset = 0;
+    let remaining = imgH;
+
+    // Slice the image across pages
+    while (remaining > 0) {
+      if (yOffset > 0) pdf.addPage();
+      pdf.addImage(imgData, 'PNG', 0, -yOffset, imgW, imgH);
+      yOffset += pageH;
+      remaining -= pageH;
+    }
+
+    const invoiceId = meta.invoiceNumber
+      ? `invoice-${meta.invoiceNumber}`
+      : `plant-hire-${monthLabel.replace(/\s/g, '-').toLowerCase()}`;
+    pdf.save(`${invoiceId}.pdf`);
+  };
+
+  const content = (
     <>
       <style>{`
         @media print {
-          body * { visibility: hidden; }
-          #phc-invoice-doc, #phc-invoice-doc * { visibility: visible; }
-          #phc-invoice-doc { 
-            position: absolute; 
-            left: 0; 
-            top: 0; 
-            width: 100%;
-            box-shadow: none;
+          /* Hide everything on the page */
+          body > * { display: none !important; }
+          /* Show only our print root */
+          body > #phc-print-root-portal { display: block !important; }
+          /* Reset the document styles for print */
+          #phc-invoice-doc {
+            box-shadow: none !important;
+            max-width: 100% !important;
+            width: 100% !important;
           }
+          /* Hide overlay chrome */
           .no-print { display: none !important; }
-          @page { margin: 18mm 20mm; size: A4; }
+          /* Page settings */
+          @page {
+            margin: 15mm 18mm;
+            size: A4;
+          }
+          /* Page number footer — printed on every page */
+          .print-page-footer {
+            display: block !important;
+            position: running(footer);
+          }
+          @page {
+            @bottom-center {
+              content: "Page " counter(page) " of " counter(pages);
+              font-size: 9pt;
+              color: #9ca3af;
+              font-family: ui-sans-serif, system-ui, sans-serif;
+            }
+          }
         }
         #phc-invoice-doc {
           font-family: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
         }
+        /* Fallback page number for browsers that don't support running() */
+        @media print {
+          .print-page-number {
+            display: block;
+            text-align: center;
+            font-size: 9pt;
+            color: #9ca3af;
+            margin-top: 12pt;
+            font-family: ui-sans-serif, system-ui, sans-serif;
+          }
+        }
+        .print-page-number { display: none; }
       `}</style>
 
-      {/* Backdrop */}
-      <div
-        id="phc-print-root"
-        className="fixed inset-0 z-50 overflow-y-auto bg-black/55"
-      >
-        {/* Floating action bar */}
+      {/* Portal root — direct child of body so print CSS can target it */}
+      <div id="phc-print-root-portal" className="fixed inset-0 z-50 overflow-y-auto bg-black/55">
+
+        {/* Floating action bar — hidden on print */}
         <div className="no-print sticky top-0 z-10 flex justify-end gap-2 px-6 py-3 bg-white/90 backdrop-blur border-b border-neutral-200 shadow-sm">
           <button
             type="button"
@@ -177,9 +250,17 @@ export const PrintView: React.FC<PrintViewProps> = ({
           <button
             type="button"
             onClick={() => window.print()}
+            className="px-4 py-2 text-sm font-medium text-neutral-700 bg-white border border-neutral-300 rounded-lg hover:bg-neutral-50 transition-colors"
+            title="Open print dialog — choose your printer"
+          >
+            Print
+          </button>
+          <button
+            type="button"
+            onClick={saveAsPdf}
             className="px-4 py-2 text-sm font-semibold text-white bg-neutral-900 rounded-lg hover:bg-neutral-700 transition-colors"
           >
-            Print / Save PDF
+            Save as PDF
           </button>
         </div>
 
@@ -192,7 +273,7 @@ export const PrintView: React.FC<PrintViewProps> = ({
             className="bg-white w-full max-w-3xl shadow-xl"
           >
             {/* ── Document header ── */}
-            <div className="px-12 pt-12 pb-8">
+            <div className="px-8 pt-8 pb-5">
 
               {/* Top row: title left, invoice number right */}
               <div className="flex justify-between items-start">
@@ -200,7 +281,7 @@ export const PrintView: React.FC<PrintViewProps> = ({
                   <p className="text-[10px] font-semibold tracking-[0.18em] uppercase text-neutral-400 mb-1">
                     Payment Certificate
                   </p>
-                  <h1 className="text-3xl font-bold tracking-tight text-neutral-900 leading-none">
+                  <h1 className="text-2xl font-bold tracking-tight text-neutral-900 leading-none">
                     Plant Hire
                   </h1>
                 </div>
@@ -210,64 +291,64 @@ export const PrintView: React.FC<PrintViewProps> = ({
                       <p className="text-[10px] font-semibold tracking-[0.18em] uppercase text-neutral-400 mb-1">
                         Invoice No.
                       </p>
-                      <p className="text-xl font-bold text-neutral-900 leading-none">
+                      <p className="text-lg font-bold text-neutral-900 leading-none">
                         {meta.invoiceNumber}
                       </p>
                     </>
                   ) : null}
-                  <p className="text-xs text-neutral-400 mt-2">{today}</p>
+                  <p className="text-xs text-neutral-400 mt-1.5">{today}</p>
                 </div>
               </div>
 
               {/* Hairline rule */}
-              <div className="mt-8 border-t border-neutral-200" />
+              <div className="mt-5 border-t border-neutral-200" />
 
               {/* Meta row: billing period · client · PO */}
-              <div className="mt-6 grid grid-cols-3 gap-6">
+              <div className="mt-4 grid grid-cols-3 gap-4">
                 <div>
-                  <p className="text-[10px] font-semibold tracking-[0.15em] uppercase text-neutral-400 mb-1">
+                  <p className="text-[10px] font-semibold tracking-[0.15em] uppercase text-neutral-400 mb-0.5">
                     Billing Period
                   </p>
-                  <p className="text-sm font-semibold text-neutral-800">{monthLabel}</p>
+                  <p className="text-xs font-semibold text-neutral-800">{monthLabel}</p>
                 </div>
                 {meta.clientName && (
                   <div>
-                    <p className="text-[10px] font-semibold tracking-[0.15em] uppercase text-neutral-400 mb-1">
+                    <p className="text-[10px] font-semibold tracking-[0.15em] uppercase text-neutral-400 mb-0.5">
                       Client
                     </p>
-                    <p className="text-sm font-semibold text-neutral-800">{meta.clientName}</p>
+                    <p className="text-xs font-semibold text-neutral-800">{meta.clientName}</p>
                   </div>
                 )}
                 {meta.poReference && (
                   <div>
-                    <p className="text-[10px] font-semibold tracking-[0.15em] uppercase text-neutral-400 mb-1">
+                    <p className="text-[10px] font-semibold tracking-[0.15em] uppercase text-neutral-400 mb-0.5">
                       PO / Reference
                     </p>
-                    <p className="text-sm font-semibold text-neutral-800">{meta.poReference}</p>
+                    <p className="text-xs font-semibold text-neutral-800">{meta.poReference}</p>
                   </div>
                 )}
               </div>
             </div>
 
             {/* ── Line items ── */}
-            <div className="px-12 pb-12">
+            <div className="px-8 pb-8">
 
               <table className="w-full text-sm border-collapse">
                 <thead>
                   <tr className="border-y border-neutral-900">
-                    <th className="py-2.5 pr-3 text-left text-[10px] font-semibold tracking-[0.15em] uppercase text-neutral-500 w-[38%]">
+                    <th className="py-2 pr-3 text-left text-[10px] font-semibold tracking-[0.15em] uppercase text-neutral-500 w-[38%]">
                       Day Type / Dates
                     </th>
-                    <th className="py-2.5 pr-3 text-right text-[10px] font-semibold tracking-[0.15em] uppercase text-neutral-500">
+                    <th className="py-2 pr-3 text-right text-[10px] font-semibold tracking-[0.15em] uppercase text-neutral-500">
                       Days
                     </th>
-                    <th className="py-2.5 pr-3 text-right text-[10px] font-semibold tracking-[0.15em] uppercase text-neutral-500">
+                    <th className="py-2 pr-3 text-right text-[10px] font-semibold tracking-[0.15em] uppercase text-neutral-500">
                       Rate
                     </th>
-                    <th className="py-2.5 pr-3 text-right text-[10px] font-semibold tracking-[0.15em] uppercase text-neutral-500">
+                    <th className="py-2 pr-3 text-right text-[10px] font-semibold tracking-[0.15em] uppercase text-neutral-500">
                       Disc.
                     </th>
-                    <th className="py-2.5 text-right text-[10px] font-semibold tracking-[0.15em] uppercase text-neutral-500">
+                    <th className="py-2 text-right text-[10px] font-semibold tracking-[0.15em] uppercase text-neutral-500">
                       Amount
                     </th>
                   </tr>
@@ -278,7 +359,7 @@ export const PrintView: React.FC<PrintViewProps> = ({
                     <tr>
                       <td
                         colSpan={5}
-                        className="py-10 text-center text-sm text-neutral-400 italic"
+                        className="py-8 text-center text-xs text-neutral-400 italic"
                       >
                         No working days recorded for this period.
                       </td>
@@ -287,10 +368,10 @@ export const PrintView: React.FC<PrintViewProps> = ({
                     sections.map((section, si) => (
                       <React.Fragment key={si}>
                         {/* Equipment name row */}
-                        <tr className="border-t border-neutral-200">
+                        <tr className={si > 0 ? 'border-t-2 border-neutral-200' : 'border-t border-neutral-200'}>
                           <td
                             colSpan={5}
-                            className="pt-4 pb-1.5 text-sm font-bold text-neutral-900 tracking-tight"
+                            className="pt-2.5 pb-1 text-xs font-bold text-neutral-900 tracking-tight uppercase"
                           >
                             {section.name}
                           </td>
@@ -303,48 +384,41 @@ export const PrintView: React.FC<PrintViewProps> = ({
                             className="border-b border-neutral-100"
                           >
                             {/* Day Type + Dates stacked in one column */}
-                            <td className="py-3 pr-3 align-top">
+                            <td className="py-1.5 pr-3 align-top">
                               <span className="block text-xs font-semibold text-neutral-700 whitespace-nowrap">
                                 {line.dayType}
                               </span>
-                              <span className="block text-xs text-neutral-400 mt-0.5">
+                              <span className="block text-[11px] text-neutral-400 mt-0.5 leading-snug">
                                 {line.ranges}
                               </span>
                             </td>
-                            <td className="py-3 pr-3 align-top text-right text-xs text-neutral-700">
+                            <td className="py-1.5 pr-3 align-top text-right text-xs text-neutral-700">
                               {line.days}
                             </td>
-                            <td className="py-3 pr-3 align-top text-right text-xs text-neutral-700 whitespace-nowrap">
+                            <td className="py-1.5 pr-3 align-top text-right text-xs text-neutral-700 whitespace-nowrap">
                               {formatCurrency(line.rate)}
                             </td>
-                            <td className="py-3 pr-3 align-top text-right text-xs text-neutral-500">
+                            <td className="py-1.5 pr-3 align-top text-right text-xs text-neutral-500">
                               {line.discount > 0 ? `${line.discount}%` : '—'}
                             </td>
-                            <td className="py-3 align-top text-right text-sm font-semibold text-neutral-900 whitespace-nowrap">
+                            <td className="py-1.5 align-top text-right text-xs font-semibold text-neutral-900 whitespace-nowrap">
                               {formatCurrency(line.total)}
                             </td>
                           </tr>
                         ))}
 
                         {/* Per-machine subtotal */}
-                        <tr className="border-b border-neutral-200">
+                        <tr>
                           <td
                             colSpan={4}
-                            className="py-2 text-right text-xs text-neutral-400 italic pr-3"
+                            className="py-1 text-right text-[11px] text-neutral-400 italic pr-3"
                           >
                             {section.name} subtotal
                           </td>
-                          <td className="py-2 text-right text-sm font-semibold text-neutral-700 whitespace-nowrap">
+                          <td className="py-1 text-right text-xs font-bold text-neutral-700 whitespace-nowrap">
                             {formatCurrency(section.subtotal)}
                           </td>
                         </tr>
-
-                        {/* Spacer between machines */}
-                        {si < sections.length - 1 && (
-                          <tr>
-                            <td colSpan={5} className="py-2" />
-                          </tr>
-                        )}
                       </React.Fragment>
                     ))
                   )}
@@ -352,29 +426,29 @@ export const PrintView: React.FC<PrintViewProps> = ({
               </table>
 
               {/* ── Totals block ── */}
-              <div className="mt-8 flex justify-end">
-                <div className="w-64">
-                  <div className="flex justify-between py-2 border-b border-neutral-200">
+              <div className="mt-5 flex justify-end">
+                <div className="w-60">
+                  <div className="flex justify-between py-1.5 border-b border-neutral-200">
                     <span className="text-xs text-neutral-500">Sub-total (excl. VAT)</span>
-                    <span className="text-sm font-medium text-neutral-800">
+                    <span className="text-xs font-medium text-neutral-800 whitespace-nowrap">
                       {formatCurrency(grandTotalExVat)}
                     </span>
                   </div>
 
                   {vatEnabled && (
-                    <div className="flex justify-between py-2 border-b border-neutral-200">
+                    <div className="flex justify-between py-1.5 border-b border-neutral-200">
                       <span className="text-xs text-neutral-500">VAT (15%)</span>
-                      <span className="text-sm font-medium text-neutral-800">
+                      <span className="text-xs font-medium text-neutral-800 whitespace-nowrap">
                         {formatCurrency(vatAmount)}
                       </span>
                     </div>
                   )}
 
-                  <div className="flex justify-between pt-3 mt-1 border-t-2 border-neutral-900">
-                    <span className="text-sm font-bold text-neutral-900 uppercase tracking-wide">
+                  <div className="flex justify-between pt-2 mt-0.5 border-t-2 border-neutral-900">
+                    <span className="text-xs font-bold text-neutral-900 uppercase tracking-wide">
                       Total{vatEnabled ? ' incl. VAT' : ''}
                     </span>
-                    <span className="text-xl font-bold text-neutral-900">
+                    <span className="text-base font-bold text-neutral-900 whitespace-nowrap">
                       {formatCurrency(vatEnabled ? totalIncVat : grandTotalExVat)}
                     </span>
                   </div>
@@ -382,19 +456,24 @@ export const PrintView: React.FC<PrintViewProps> = ({
               </div>
 
               {/* ── Compliance legend ── */}
-              <div className="mt-12 pt-5 border-t border-neutral-200">
-                <p className="text-[10px] font-semibold tracking-[0.12em] uppercase text-neutral-400 mb-1.5">
+              <div className="mt-6 pt-4 border-t border-neutral-200">
+                <p className="text-[10px] font-semibold tracking-[0.12em] uppercase text-neutral-400 mb-1">
                   Discount Tiers
                 </p>
-                <p className="text-[11px] text-neutral-400 leading-relaxed">
+                <p className="text-[10px] text-neutral-400 leading-relaxed">
                   Standard (0%): 1–4 continuous working days &nbsp;·&nbsp;
                   Silver (5%): 5–14 continuous working days &nbsp;·&nbsp;
                   Gold (10%): 15+ continuous working days
                 </p>
-                <p className="text-[11px] text-neutral-400 leading-relaxed mt-1">
+                <p className="text-[10px] text-neutral-400 leading-relaxed mt-0.5">
                   Overtime: Saturday = Base + (5% × 1.5) &nbsp;·&nbsp;
                   Sunday / Public Holiday = Base + (5% × 2.0)
                 </p>
+              </div>
+
+              {/* Page number — visible only when printing */}
+              <div className="print-page-number">
+                Page <span className="phc-page-num" /> of <span className="phc-page-count" />
               </div>
 
             </div>
@@ -403,4 +482,7 @@ export const PrintView: React.FC<PrintViewProps> = ({
       </div>
     </>
   );
+
+  if (!portalRoot) return null;
+  return createPortal(content, portalRoot);
 };
