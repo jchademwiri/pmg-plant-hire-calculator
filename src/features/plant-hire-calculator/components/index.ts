@@ -10,3 +10,4 @@ export { EmptyState } from './EmptyState';
 export { CalculationRules } from './CalculationRules';
 export { InvoiceHeader } from './InvoiceHeader';
 export type { InvoiceMeta } from './InvoiceHeader';
+export { PrintView } from './PrintView';

@@ -9,6 +9,7 @@ import {
   GrandTotalFooter,
   EmptyState,
   CalculationRules,
+  PrintView,
 } from './components';
 import type { InvoiceMeta } from './components';
 import { useEquipmentManager, useGrandTotal } from './hooks';
@@ -34,6 +35,7 @@ const PlantHireCalculator: React.FC = () => {
   const [newDailyRate, setNewDailyRate] = useState('');
   const [activeRateEquipmentId, setActiveRateEquipmentId] = useState('');
   const [showRatesPanel, setShowRatesPanel] = useState(false);
+  const [showPrint, setShowPrint] = useState(false);
 
   const {
     equipment,
@@ -158,6 +160,15 @@ const PlantHireCalculator: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-linear-to-br from-emerald-50 via-slate-50 to-teal-50 p-3 md:p-6 font-sans text-slate-800">
+      {showPrint && (
+        <PrintView
+          equipment={equipment}
+          currentMonth={currentMonth}
+          meta={invoiceMeta}
+          vatEnabled={vatEnabled}
+          onClose={() => setShowPrint(false)}
+        />
+      )}
       <div className="max-w-5xl mx-auto space-y-5 md:space-y-6">
         {showRatesPanel && activeRateEquipment && (
           <div className="fixed inset-0 z-40">
@@ -255,6 +266,7 @@ const PlantHireCalculator: React.FC = () => {
             onVatToggle={() => setVatEnabled((v) => !v)}
             onNewMonth={handleNewMonth}
             nextMonthLabel={nextMonthLabel}
+            onPrint={() => setShowPrint(true)}
           />
         )}
 

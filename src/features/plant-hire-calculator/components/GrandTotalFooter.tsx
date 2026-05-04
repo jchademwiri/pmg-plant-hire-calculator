@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Info, ToggleLeft, ToggleRight, CalendarPlus } from 'lucide-react';
+import { Info, ToggleLeft, ToggleRight, CalendarPlus, Printer } from 'lucide-react';
 import { formatCurrency } from '../utils/calculations';
 
 const VAT_RATE = 0.15;
@@ -14,6 +14,7 @@ interface GrandTotalFooterProps {
   onVatToggle: () => void;
   onNewMonth: () => void;
   nextMonthLabel: string;
+  onPrint: () => void;
 }
 
 export const GrandTotalFooter: React.FC<GrandTotalFooterProps> = ({
@@ -24,6 +25,7 @@ export const GrandTotalFooter: React.FC<GrandTotalFooterProps> = ({
   onVatToggle,
   onNewMonth,
   nextMonthLabel,
+  onPrint,
 }) => {
   const vatAmount = vatEnabled ? total * VAT_RATE : 0;
   const totalIncVat = total + vatAmount;
@@ -85,6 +87,14 @@ export const GrandTotalFooter: React.FC<GrandTotalFooterProps> = ({
             {vatEnabled && <div className="text-xs text-amber-400 mt-0.5">incl. VAT</div>}
           </div>
           <div className="flex flex-col gap-1.5 ml-2 shrink-0">
+            <button
+              onClick={onPrint}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg text-xs font-medium transition-colors border border-slate-600 cursor-pointer"
+              title="Preview and print invoice"
+            >
+              <Printer className="w-3.5 h-3.5" />
+              Print Invoice
+            </button>
             <button
               onClick={onNewMonth}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-medium transition-colors"

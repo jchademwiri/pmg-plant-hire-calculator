@@ -100,7 +100,6 @@ export const getSAHolidays = (year: number): Date[] => {
     month = 3 + f((L + 40) / 44),
     day = L + 28 - 31 * f(month / 4);
   
-  const easterSunday = new Date(year, month - 1, day);
   const goodFriday = new Date(year, month - 1, day - 2);
   const familyDay = new Date(year, month - 1, day + 1);
 
