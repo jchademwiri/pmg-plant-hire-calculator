@@ -10,11 +10,13 @@ import {
   EmptyState,
   CalculationRules,
   PrintView,
+  SettingsPanel,
 } from './components';
 import type { InvoiceMeta } from './components';
-import { useEquipmentManager, useGrandTotal } from './hooks';
+import { useEquipmentManager, useGrandTotal, useCompanyProfile, useClientDirectory, useCatalogue } from './hooks';
 import { EQUIPMENT_PRESETS } from './utils/constants';
 import type { EquipmentPreset } from './types';
+import { Settings } from 'lucide-react';
 
 const META_KEY = 'phc-invoice-meta-v1';
 
@@ -36,6 +38,12 @@ const PlantHireCalculator: React.FC = () => {
   const [activeRateEquipmentId, setActiveRateEquipmentId] = useState('');
   const [showRatesPanel, setShowRatesPanel] = useState(false);
   const [showPrint, setShowPrint] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [settingsInitialTab, setSettingsInitialTab] = useState<'company' | 'clients' | 'catalogue'>('company');
+
+  const { profile, setProfile } = useCompanyProfile();
+  const { clients, addClient, updateClient, removeClient } = useClientDirectory();
+  const { catalogue, quickItems, addCatalogueItem, updateCatalogueItem, removeCatalogueItem, incrementUsage } = useCatalogue();
 
   const {
     equipment,
@@ -78,6 +86,7 @@ const PlantHireCalculator: React.FC = () => {
   const handleAddEquipment = (e: React.FormEvent) => {
     e?.preventDefault();
     addEquipment(newEquipmentName, newDailyRate);
+    incrementUsage(newEquipmentName);
     setNewEquipmentName('');
     setNewDailyRate('');
   };
@@ -166,7 +175,24 @@ const PlantHireCalculator: React.FC = () => {
           currentMonth={currentMonth}
           meta={invoiceMeta}
           vatEnabled={vatEnabled}
+          companyProfile={profile}
           onClose={() => setShowPrint(false)}
+        />
+      )}
+      {showSettings && (
+        <SettingsPanel
+          profile={profile}
+          onProfileChange={setProfile}
+          clients={clients}
+          onAddClient={addClient}
+          onUpdateClient={updateClient}
+          onRemoveClient={removeClient}
+          catalogue={catalogue}
+          onAddCatalogueItem={addCatalogueItem}
+          onUpdateCatalogueItem={updateCatalogueItem}
+          onRemoveCatalogueItem={removeCatalogueItem}
+          onClose={() => setShowSettings(false)}
+          initialTab={settingsInitialTab}
         />
       )}
       <div className="max-w-5xl mx-auto space-y-5 md:space-y-6">
@@ -202,7 +228,7 @@ const PlantHireCalculator: React.FC = () => {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-3">
           <div>
             <h1 className="text-3xl md:text-4xl font-extrabold text-transparent bg-clip-text bg-linear-to-r from-emerald-700 to-teal-600 mb-1.5">
-              Plant Hire Calculator
+              {profile.name || 'Plant Hire Calculator'}
             </h1>
             <p className="text-slate-500 font-medium text-sm">
               Strict period discounting · South Africa
@@ -212,27 +238,46 @@ const PlantHireCalculator: React.FC = () => {
               </span>
             </p>
           </div>
-          {activeRateEquipment && (
+          <div className="flex items-center gap-2">
+            {activeRateEquipment && (
+              <button
+                type="button"
+                onClick={() => setShowRatesPanel(true)}
+                className="inline-flex items-center px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs md:text-sm font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                Configure Rates
+              </button>
+            )}
             <button
-              onClick={() => setShowRatesPanel(true)}
-              className="inline-flex items-center px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs md:text-sm font-semibold text-slate-700 hover:bg-slate-50"
+              type="button"
+              onClick={() => { setSettingsInitialTab('company'); setShowSettings(true); }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs md:text-sm font-semibold text-slate-700 hover:bg-slate-50"
+              title="Settings"
             >
-              Configure Rates
+              <Settings className="w-4 h-4" />
+              Settings
             </button>
-          )}
+          </div>
         </div>
 
-        <InvoiceHeader meta={invoiceMeta} onChange={setInvoiceMeta} />
+        <InvoiceHeader
+          meta={invoiceMeta}
+          onChange={setInvoiceMeta}
+          clients={clients}
+          onOpenClientSettings={() => { setSettingsInitialTab('clients'); setShowSettings(true); }}
+        />
 
         {/* Add Equipment Form */}
         <AddEquipmentForm
           equipmentName={newEquipmentName}
           dailyRate={newDailyRate}
           presets={EQUIPMENT_PRESETS}
+          catalogueItems={quickItems.length > 0 ? catalogue : undefined}
           onEquipmentNameChange={setNewEquipmentName}
           onDailyRateChange={setNewDailyRate}
           onSubmit={handleAddEquipment}
           onPresetSelect={handlePresetSelect}
+          onOpenCatalogueSettings={() => { setSettingsInitialTab('catalogue'); setShowSettings(true); }}
         />
 
         {/* Equipment List */}

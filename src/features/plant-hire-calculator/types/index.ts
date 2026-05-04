@@ -37,3 +37,29 @@ export interface EquipmentPreset {
   name: string;
   rate: number;
 }
+
+export interface CompanyProfile {
+  name: string;
+  registration: string;
+  vatNumber: string;
+  address: string;
+  phone: string;
+  email: string;
+}
+
+export interface Client {
+  id: string;
+  name: string;
+  contactPerson: string;
+  email: string;
+  phone: string;
+  address: string;
+  poPrefix: string;
+}
+
+export interface CatalogueItem {
+  id: string;
+  name: string;
+  rate: number;
+  usageCount: number;
+}
